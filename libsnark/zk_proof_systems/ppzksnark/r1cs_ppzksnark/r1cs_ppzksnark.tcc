@@ -426,6 +426,46 @@ r1cs_ppzksnark_keypair<ppT> r1cs_ppzksnark_generator(const r1cs_ppzksnark_constr
     return r1cs_ppzksnark_keypair<ppT>(std::move(pk), std::move(vk));
 }
 
+template <typename G1, typename G2>
+void dump_kc_to_file(std::ofstream &ofs, const knowledge_commitment_vector<G1, G2> &kc) {
+    ofs << std::dec << kc.domain_size() << "\n";
+
+    for (size_t i = 0; i < kc.domain_size(); ++i) {
+        auto p = kc[i].g;
+        p.to_affine_coordinates();
+        ofs << p.X << " " << p.Y << "\n";
+    }
+
+    ofs << "\n";
+    ofs << std::dec << kc.domain_size() << "\n";
+
+    for (size_t i = 0; i < kc.domain_size(); ++i) {
+        auto p = kc[i].h;
+        p.to_affine_coordinates();
+        ofs << p.X << " " << p.Y << "\n";
+    }
+}
+
+template <typename G>
+void dump_points_to_file(std::ofstream &ofs, const typename std::vector<G> &points) {
+    ofs << std::dec << points.size() << "\n";
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        auto p = points[i];
+        p.to_affine_coordinates();
+        ofs << p.X << " " << p.Y << "\n";
+    }
+}
+
+template <typename F>
+void dump_scalars_to_file(std::ofstream &ofs, const typename std::vector<F> &scalars) {
+    ofs << std::dec << scalars.size() << "\n";
+
+    for (size_t i = 0; i < scalars.size(); ++i) {
+        ofs << scalars[i] << "\n";
+    }
+}
+
 template <typename ppT>
 r1cs_ppzksnark_proof<ppT> r1cs_ppzksnark_prover(const r1cs_ppzksnark_proving_key<ppT> &pk,
                                                 const r1cs_ppzksnark_primary_input<ppT> &primary_input,
@@ -480,6 +520,31 @@ r1cs_ppzksnark_proof<ppT> r1cs_ppzksnark_prover(const r1cs_ppzksnark_proving_key
 #endif
 
     libff::enter_block("Compute the proof");
+
+    std::ofstream A_query_ofs("A_query.txt");
+    dump_kc_to_file(A_query_ofs, pk.A_query);
+
+    std::ofstream B_query_ofs("B_query.txt");
+    dump_kc_to_file(B_query_ofs, pk.B_query);
+
+    std::ofstream C_query_ofs("C_query.txt");
+    dump_kc_to_file(C_query_ofs, pk.C_query);
+
+    std::ofstream H_query_ofs("H_query.txt");
+    dump_points_to_file(H_query_ofs, pk.H_query);
+
+    std::ofstream K_query_ofs("K_query.txt");
+    dump_points_to_file(K_query_ofs, pk.K_query);
+
+    std::ofstream ABCs_ofs("ABCs.txt");
+    dump_scalars_to_file(ABCs_ofs, qap_wit.coefficients_for_ABCs);
+
+    std::ofstream Hs_ofs("Hs.txt");
+    dump_scalars_to_file(Hs_ofs, qap_wit.coefficients_for_H);
+
+    std::ofstream params_ofs("wit_params.txt");
+    params_ofs << qap_wit.num_variables() << "\n";
+    params_ofs << qap_wit.degree() << "\n";
 
     libff::enter_block("Compute answer to A-query", false);
     g_A = g_A + kc_multi_exp_with_mixed_addition<libff::G1<ppT>,
